@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Java Quiz — Uji Keahlianmu</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #f7c948;
+    --text: #f0f0f0;
+    --muted: #666;
+    --correct: #5cffb0;
+    --wrong: #ff5c5c;
+    --mono: 'Inter', sans-serif;
+    --display: 'Poppins', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(247,201,72,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(247,201,72,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    animation: slideDown 0.6s cubic-bezier(.16,1,.3,1) both;
+  }
+
+  .brand { display: flex; flex-direction: column; gap: 4px; }
+  .brand-label { font-size: 11px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; font-family: var(--mono); }
+  .brand-title { font-family: var(--display); font-size: clamp(32px, 6vw, 52px); font-weight: 800; line-height: 1; }
+  .brand-title span { color: var(--accent); }
+
+  .coffee-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-family: var(--mono);
+  }
+  .coffee-badge strong { color: var(--accent); font-size: 13px; font-family: var(--display); }
+
+  .progress-wrap { margin-bottom: 32px; animation: slideDown 0.6s 0.1s cubic-bezier(.16,1,.3,1) both; }
+  .progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; font-family: var(--mono); }
+  .progress-bar { height: 3px; background: var(--border); position: relative; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 0.5s cubic-bezier(.16,1,.3,1); position: relative; }
+  .progress-fill::after { content: ''; position: absolute; right: 0; top: -2px; width: 7px; height: 7px; background: var(--accent); border-radius: 50%; }
+
+  .score-strip { display: flex; gap: 1px; margin-bottom: 40px; animation: slideDown 0.6s 0.15s cubic-bezier(.16,1,.3,1) both; }
+  .score-box { flex: 1; background: var(--surface); border: 1px solid var(--border); padding: 16px; text-align: center; }
+  .score-box .label { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 6px; font-family: var(--mono); }
+  .score-box .value { font-family: var(--display); font-size: 28px; font-weight: 800; }
+  .score-box.correct .value { color: var(--correct); }
+  .score-box.wrong .value { color: var(--wrong); }
+  .score-box.total .value { color: var(--accent); }
+
+  .question-card { background: var(--card); border: 1px solid var(--border); position: relative; overflow: hidden; animation: slideUp 0.5s cubic-bezier(.16,1,.3,1) both; }
+  .question-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease; }
+  .question-card.answered::before { transform: scaleX(1); }
+
+  .q-header { display: flex; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+  .q-number { font-family: var(--display); font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 1px; background: rgba(247,201,72,0.1); padding: 4px 10px; white-space: nowrap; }
+  .q-topic { font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; font-family: var(--mono); }
+
+  .q-body { padding: 28px 24px; }
+  .q-text { font-size: 15px; line-height: 1.8; margin-bottom: 28px; font-family: var(--mono); font-weight: 400; }
+
+  .code-block {
+    background: #0a0a0a;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    margin-bottom: 28px;
+    overflow-x: auto;
+    white-space: pre;
+    color: #ccc;
+  }
+  .code-block .kw { color: #f7c948; }
+  .code-block .str { color: #5cffb0; }
+  .code-block .cls { color: #ff9f5c; }
+  .code-block .num { color: #c084fc; }
+
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 520px) { .options { grid-template-columns: 1fr; } }
+
+  .option-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    line-height: 1.5;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(247,201,72,0.04); }
+
+  .option-key {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(247,201,72,0.1);
+    border: 1px solid rgba(247,201,72,0.3);
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: var(--display);
+    border-radius: 4px;
+  }
+
+  .option-btn.correct { background: rgba(92,255,176,0.08); border-color: var(--correct); color: var(--correct); }
+  .option-btn.correct .option-key { background: rgba(92,255,176,0.2); border-color: var(--correct); color: var(--correct); }
+  .option-btn.wrong { background: rgba(255,92,92,0.08); border-color: var(--wrong); color: var(--wrong); }
+  .option-btn.wrong .option-key { background: rgba(255,92,92,0.2); border-color: var(--wrong); color: var(--wrong); }
+  .option-btn:disabled { cursor: default; }
+
+  .feedback { margin: 20px 24px 0; padding: 14px 18px; font-size: 13px; line-height: 1.7; display: none; border-left: 3px solid transparent; animation: fadeIn 0.3s ease; font-family: var(--mono); }
+  .feedback.correct { display: block; background: rgba(92,255,176,0.06); border-left-color: var(--correct); color: var(--correct); }
+  .feedback.wrong { display: block; background: rgba(255,92,92,0.06); border-left-color: var(--wrong); color: #ff9090; }
+  .feedback strong { display: block; margin-bottom: 4px; font-family: var(--display); font-size: 14px; }
+
+  .q-footer { padding: 20px 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); margin-top: 20px; }
+
+  .btn-next { background: var(--accent); color: #000; border: none; padding: 12px 28px; font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; display: none; border-radius: 4px; }
+  .btn-next:hover { background: #fff; transform: translateY(-1px); }
+  .btn-next.visible { display: block; }
+
+  .result-screen { display: none; animation: slideUp 0.6s cubic-bezier(.16,1,.3,1) both; }
+  .result-screen.show { display: block; }
+
+  .result-big { text-align: center; padding: 60px 24px; background: var(--card); border: 1px solid var(--border); position: relative; overflow: hidden; margin-bottom: 24px; }
+  .result-big::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(247,201,72,0.08) 0%, transparent 60%); }
+
+  .result-emoji { font-size: 64px; display: block; margin-bottom: 16px; animation: bounce 0.8s 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+  .result-label { font-size: 12px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-family: var(--mono); }
+  .result-score { font-family: var(--display); font-size: clamp(64px, 15vw, 100px); font-weight: 800; line-height: 1; color: var(--accent); }
+  .result-out-of { font-size: 16px; color: var(--muted); margin-top: 8px; font-family: var(--mono); }
+  .result-grade { font-family: var(--display); font-size: 20px; font-weight: 800; margin-top: 20px; letter-spacing: 1px; }
+
+  .result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-bottom: 24px; }
+  .r-stat { background: var(--surface); border: 1px solid var(--border); padding: 20px; text-align: center; }
+  .r-stat .rl { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-family: var(--mono); }
+  .r-stat .rv { font-family: var(--display); font-size: 28px; font-weight: 800; }
+  .rv.g { color: var(--correct); }
+  .rv.r { color: var(--wrong); }
+  .rv.y { color: var(--accent); }
+
+  .review-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+  .review-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid transparent; padding: 14px 18px; font-size: 13px; font-family: var(--mono); }
+  .review-item.c { border-left-color: var(--correct); }
+  .review-item.w { border-left-color: var(--wrong); }
+  .review-item .ri-q { color: var(--muted); margin-bottom: 4px; font-size: 11px; letter-spacing: 1px; }
+  .review-item .ri-icon { float: right; font-size: 14px; }
+
+  .btn-restart { width: 100%; background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 16px; font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+  .btn-restart:hover { background: var(--accent); color: #000; }
+
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes bounce { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.25); } 70% { transform: scale(0.9); } }
+  @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  .pop { animation: pop 0.3s ease; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <span class="brand-label">Quiz · v2.0</span>
+      <h1 class="brand-title">JAVA<span>QUIZ</span></h1>
+    </div>
+    <div class="coffee-badge">
+      <span>Bahasa</span>
+      <strong>JAVA</strong>
+      <span style="font-size:9px;letter-spacing:2px;margin-top:2px;">10 SOAL</span>
+    </div>
+  </header>
+
+  <div id="quizArea">
+    <div class="progress-wrap">
+      <div class="progress-info">
+        <span id="progressText">Soal 1 / 10</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="score-strip">
+      <div class="score-box correct"><span class="label">Benar</span><span class="value" id="scoreCorrect">0</span></div>
+      <div class="score-box wrong"><span class="label">Salah</span><span class="value" id="scoreWrong">0</span></div>
+      <div class="score-box total"><span class="label">Skor</span><span class="value" id="scoreTotal">0</span></div>
+    </div>
+
+    <div class="question-card" id="questionCard">
+      <div class="q-header">
+        <span class="q-number" id="qNumber">SOAL 01</span>
+        <span class="q-topic" id="qTopic">Dasar Java</span>
+      </div>
+      <div class="q-body">
+        <p class="q-text" id="qText"></p>
+        <div class="code-block" id="qCode" style="display:none"></div>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="feedback" id="feedback"></div>
+      <div class="q-footer">
+        <button class="btn-next" id="btnNext" onclick="nextQuestion()">Soal Berikutnya →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-screen" id="resultScreen">
+    <div class="result-big">
+      <span class="result-emoji" id="resultEmoji">🏆</span>
+      <div class="result-label">Nilai Akhirmu</div>
+      <div class="result-score" id="resultScore">0</div>
+      <div class="result-out-of" id="resultOutOf">dari 100</div>
+      <div class="result-grade" id="resultGrade"></div>
+    </div>
+    <div class="result-stats">
+      <div class="r-stat"><div class="rl">Benar</div><div class="rv g" id="rCorrect">0</div></div>
+      <div class="r-stat"><div class="rl">Salah</div><div class="rv r" id="rWrong">0</div></div>
+      <div class="r-stat"><div class="rl">Akurasi</div><div class="rv y" id="rAcc">0%</div></div>
+    </div>
+    <div class="review-list" id="reviewList"></div>
+    <button class="btn-restart" onclick="restartQuiz()">↺ Ulangi Quiz</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    topic: "Dasar Java",
+    text: "Apa ekstensi file untuk source code Java?",
+    options: [".jv", ".java", ".class", ".jar"],
+    answer: 1,
+    explanation: "Source code Java disimpan dalam file berekstensi .java, kemudian dikompilasi menjadi .class (bytecode)."
+  },
+  {
+    topic: "Tipe Data",
+    text: "Tipe data manakah yang digunakan untuk menyimpan bilangan desimal dengan presisi tinggi?",
+    options: ["float", "int", "double", "long"],
+    answer: 2,
+    explanation: "double menyimpan 64-bit floating point (~15 digit presisi), sedangkan float hanya 32-bit (~7 digit)."
+  },
+  {
+    topic: "OOP",
+    text: "Keyword apa yang digunakan untuk mewarisi sebuah class di Java?",
+    options: ["implements", "inherits", "extends", "super"],
+    answer: 2,
+    explanation: "Keyword extends digunakan untuk inheritance. Contoh: class Kucing extends Hewan { }"
+  },
+  {
+    topic: "Operator",
+    text: "Apa output dari kode berikut?",
+    code: `<span class="kw">int</span> x = <span class="num">5</span>;
+<span class="kw">int</span> y = <span class="num">2</span>;
+System.out.println(x % y);`,
+    options: ["2", "2.5", "1", "0"],
+    answer: 2,
+    explanation: "Operator % (modulo) menghasilkan sisa bagi. 5 % 2 = 1, karena 5 = 2×2 + 1."
+  },
+  {
+    topic: "String",
+    text: "Method mana yang BUKAN cara valid untuk menggabungkan String di Java?",
+    options: ["str1 + str2", "str1.concat(str2)", "str1.append(str2)", "String.join(\"\", str1, str2)"],
+    answer: 2,
+    explanation: "append() adalah method dari StringBuilder, bukan String. String tidak memiliki method append()."
+  },
+  {
+    topic: "Array",
+    text: "Apa output dari ekspresi berikut?",
+    code: `<span class="kw">int</span>[] arr = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>};
+System.out.println(arr.length);`,
+    options: ["3", "4", "40", "Error"],
+    answer: 1,
+    explanation: "arr.length mengembalikan jumlah elemen array, yaitu 4. Index terakhir adalah arr[3] = 40."
+  },
+  {
+    topic: "OOP",
+    text: "Apa yang dimaksud dengan encapsulation dalam Java?",
+    options: [
+      "Mewarisi properti dari class lain",
+      "Menyembunyikan data dengan private dan akses via getter/setter",
+      "Membuat banyak method dengan nama sama",
+      "Mengimplementasikan banyak interface"
+    ],
+    answer: 1,
+    explanation: "Encapsulation = menyembunyikan detail implementasi. Data dibuat private, diakses lewat public getter/setter."
+  },
+  {
+    topic: "Exception",
+    text: "Blok kode apa yang SELALU dieksekusi, baik ada exception maupun tidak?",
+    options: ["catch", "throw", "finally", "throws"],
+    answer: 2,
+    explanation: "Blok finally selalu dieksekusi setelah try-catch, biasanya untuk menutup resource (file, koneksi DB)."
+  },
+  {
+    topic: "Interface",
+    text: "Apa yang benar tentang Interface di Java?",
+    options: [
+      "Interface bisa di-instantiate langsung",
+      "Satu class hanya bisa implements satu interface",
+      "Method di interface secara default adalah abstract dan public",
+      "Interface bisa memiliki constructor"
+    ],
+    answer: 2,
+    explanation: "Method di interface secara default bersifat public abstract. Satu class bisa implements banyak interface."
+  },
+  {
+    topic: "Collections",
+    text: "Apa perbedaan utama antara ArrayList dan LinkedList di Java?",
+    options: [
+      "ArrayList bisa menyimpan duplikat, LinkedList tidak",
+      "ArrayList menggunakan array dinamis, LinkedList menggunakan node pointer",
+      "LinkedList lebih cepat saat random access",
+      "Tidak ada perbedaan, keduanya identik"
+    ],
+    answer: 1,
+    explanation: "ArrayList berbasis array (cepat random access). LinkedList berbasis node (cepat insert/delete di tengah)."
+  }
+];
+
+let current = 0, score = 0, correct = 0, wrong = 0, answered = [];
+
+function loadQuestion() {
+  const q = questions[current];
+  document.getElementById('questionCard').classList.remove('answered');
+
+  const pct = Math.round((current / questions.length) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `Soal ${current + 1} / ${questions.length}`;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('qNumber').textContent = `SOAL ${String(current + 1).padStart(2, '0')}`;
+  document.getElementById('qTopic').textContent = q.topic;
+  document.getElementById('qText').innerHTML = q.text;
+
+  const codeEl = document.getElementById('qCode');
+  if (q.code) { codeEl.innerHTML = q.code; codeEl.style.display = 'block'; }
+  else { codeEl.style.display = 'none'; }
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+  ['A','B','C','D'].forEach((key, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-key">${key}</span><span>${q.options[i]}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    optionsEl.appendChild(btn);
+  });
+
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('btnNext').classList.remove('visible');
+}
+
+function selectAnswer(selected) {
+  const q = questions[current];
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const feedback = document.getElementById('feedback');
+
+  if (selected === q.answer) {
+    btns[selected].classList.add('correct');
+    feedback.className = 'feedback correct';
+    feedback.innerHTML = `<strong>✓ Benar!</strong>${q.explanation}`;
+    correct++; score += 10;
+    answered.push({ correct: true });
+  } else {
+    btns[selected].classList.add('wrong');
+    btns[q.answer].classList.add('correct');
+    feedback.className = 'feedback wrong';
+    feedback.innerHTML = `<strong>✗ Salah.</strong>${q.explanation}`;
+    wrong++;
+    answered.push({ correct: false });
+  }
+
+  document.getElementById('questionCard').classList.add('answered');
+  document.getElementById('scoreCorrect').textContent = correct;
+  document.getElementById('scoreWrong').textContent = wrong;
+
+  const st = document.getElementById('scoreTotal');
+  st.textContent = score;
+  st.classList.remove('pop');
+  void st.offsetWidth;
+  st.classList.add('pop');
+
+  const btn = document.getElementById('btnNext');
+  btn.textContent = current < questions.length - 1 ? 'Soal Berikutnya →' : 'Lihat Hasil →';
+  btn.classList.add('visible');
+}
+
+function nextQuestion() {
+  current++;
+  if (current < questions.length) loadQuestion();
+  else showResult();
+}
+
+function showResult() {
+  document.getElementById('quizArea').style.display = 'none';
+  document.getElementById('resultScreen').classList.add('show');
+
+  const pct = Math.round((correct / questions.length) * 100);
+  document.getElementById('resultScore').textContent = score;
+  document.getElementById('resultOutOf').textContent = 'dari ' + (questions.length * 10);
+  document.getElementById('rCorrect').textContent = correct;
+  document.getElementById('rWrong').textContent = wrong;
+  document.getElementById('rAcc').textContent = pct + '%';
+
+  let emoji, grade, color;
+  if (pct >= 90)      { emoji = '🏆'; grade = 'LUAR BIASA!';        color = '#f7c948'; }
+  else if (pct >= 70) { emoji = '🎉'; grade = 'BAGUS SEKALI!';      color = '#5cffb0'; }
+  else if (pct >= 50) { emoji = '👍'; grade = 'CUKUP BAIK';         color = '#5cb8ff'; }
+  else                { emoji = '📚'; grade = 'PERLU BELAJAR LAGI'; color = '#ff9090'; }
+
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultGrade').textContent = grade;
+  document.getElementById('resultGrade').style.color = color;
+
+  const rl = document.getElementById('reviewList');
+  rl.innerHTML = '';
+  answered.forEach((a, i) => {
+    const div = document.createElement('div');
+    div.className = 'review-item ' + (a.correct ? 'c' : 'w');
+    div.innerHTML = `
+      <span class="ri-icon">${a.correct ? '✓' : '✗'}</span>
+      <div class="ri-q">Soal ${i + 1} · ${questions[i].topic}</div>
+      <div>${a.correct ? 'Menjawab dengan benar' : 'Jawaban salah'}</div>
+    `;
+    rl.appendChild(div);
+  });
+}
+
+function restartQuiz() {
+  current = 0; score = 0; correct = 0; wrong = 0; answered = [];
+  ['scoreCorrect','scoreWrong','scoreTotal'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('resultScreen').classList.remove('show');
+  document.getElementById('quizArea').style.display = 'block';
+  loadQuestion();
+}
+
+loadQuestion();
+</script>
+</body>
+</html>
